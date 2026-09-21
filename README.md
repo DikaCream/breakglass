@@ -19,7 +19,7 @@ The demo target in `contracts/safe_vault.py` is a small deposit vault wired to t
 
 The live app walks the whole flow: register a contract, file an alarm, reserve the nonce, run the review, resume with a fix. Every button on the site calls the contract.
 
-- App: https://breakglass-sable.vercel.app
+- App: https://breakglass-flax.vercel.app
 - Contract on StudioNet: `0x91Bc965E0939F47Cc9aAFCD42ca11a683578484f`
 
 ## Repo layout
