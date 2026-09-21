@@ -1,0 +1,16 @@
+networks:
+  default: localnet
+
+  localnet:
+    url: "http://127.0.0.1:4000/api"
+
+  studionet:
+    accounts:
+      - "34edd31a631475013ef41b950f67f19a2b9384aa3dbe95515555834e1c8a165f"
+      - "0ea20c1cbfa019f9e30be9aebfd215fe8e6bae073dbe1ad3f4b479b2f08d78ec"
+      - "b8815cb3c51cd3adcf1c0d99b7476ab7aca710ffd327936387d55e292d63d38e"
+
+paths:
+  contracts: "contracts"
+
+environment: .env
