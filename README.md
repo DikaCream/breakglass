@@ -17,10 +17,18 @@ The demo target in `contracts/safe_vault.py` is a small deposit vault wired to t
 
 ## Try it
 
-The live app walks the whole flow: register a contract, file an alarm, reserve the nonce, run the review, resume with a fix. Every button on the site calls the contract.
-
 - App: https://breakglass-flax.vercel.app
 - Contract on StudioNet: `0x91Bc965E0939F47Cc9aAFCD42ca11a683578484f`
+
+Walk the whole flow in the browser:
+
+1. Open a target with no open alarm and press **File an alarm**.
+2. Point the report at a page you control (a fresh webhook.site page works) and describe the exploit.
+3. Press **Reserve nonce**, then copy the nonce into the report page before going further.
+4. Press **Run the review**. Validators fetch the page and the verdict lands on-chain.
+5. Own a paused target? Submit a fix page under **Resume with a fix** to lift the pause.
+
+Every action button ends in a contract call.
 
 ## Repo layout
 
