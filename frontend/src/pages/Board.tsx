@@ -30,21 +30,31 @@ export function Board() {
     return <p className="note">Reading the breaker…</p>;
   }
   if (error || loadErr) {
-    return <p className="note bad">{error ?? loadErr}</p>;
+    return (
+      <>
+        <PageHead />
+        <p className="note bad">{error ?? loadErr}</p>
+      </>
+    );
   }
   if (full.length === 0) {
     return (
-      <div className="empty">
-        <p>No contract stands under the breaker yet.</p>
-        <Link className="btn primary" to="/register">
-          Put a contract under it
-        </Link>
-      </div>
+      <>
+        <PageHead />
+        <div className="empty">
+          <p>No contract stands under the breaker yet.</p>
+          <Link className="btn primary" to="/register">
+            Put a contract under it
+          </Link>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="stack">
+    <>
+      <PageHead />
+      <div className="stack">
       {full.map((t) => (
         <article key={t.id} className={`row target ${t.status.toLowerCase()}`}>
           <div className="row-main">
@@ -65,6 +75,19 @@ export function Board() {
           </div>
         </article>
       ))}
-    </div>
+      </div>
+    </>
+  );
+}
+
+function PageHead() {
+  return (
+    <header className="page-head">
+      <h2>Targets under the breaker</h2>
+      <p className="note">
+        Every row is a live contract that pauses itself when someone proves an
+        exploit against it.
+      </p>
+    </header>
   );
 }

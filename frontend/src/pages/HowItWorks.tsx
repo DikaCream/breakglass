@@ -4,6 +4,10 @@ export function HowItWorks() {
   return (
     <div className="prose">
       <h2>How BreakGlass works</h2>
+      <p className="lead">
+        Four moves, all of them on-chain: register, alarm, verdict, resume.
+        Nothing here needs a phone call.
+      </p>
 
       <h3>The problem</h3>
       <p>
@@ -27,10 +31,9 @@ export function HowItWorks() {
           reproduction, the money movement.
         </li>
         <li>
-          The report must carry the review's <strong>nonce</strong>. The nonce
-          is pinned on-chain before the review and derived from facts the
-          alarm already fixed, so a page written before the alarm cannot
-          answer for it.
+          The report must carry the review's <strong>nonce</strong>, pinned
+          on-chain before the review runs. A page written before the alarm
+          cannot answer for it.
         </li>
         <li>
           Validators fetch the report themselves and judge it under the
@@ -62,6 +65,24 @@ export function HowItWorks() {
         the target stops moving funds on its very next call, and starts again
         the moment the breaker resumes it.
       </p>
+
+      <h3>The numbers</h3>
+      <table className="num-table">
+        <tbody>
+          <tr>
+            <th>Minimum bail</th>
+            <td className="mono">0.1 GEN</td>
+          </tr>
+          <tr>
+            <th>Alarm bond</th>
+            <td className="mono">0.01 GEN</td>
+          </tr>
+          <tr>
+            <th>Reporter reward</th>
+            <td className="mono">25% of the bail</td>
+          </tr>
+        </tbody>
+      </table>
 
       <p>
         <Link className="btn primary" to="/register">

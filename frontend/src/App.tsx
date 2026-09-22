@@ -15,7 +15,11 @@ function Bar() {
     <header className="bar">
       <Link to="/" className="brand">
         <span className="brand-mark" aria-hidden="true">
-          ⏛
+          <svg viewBox="0 0 32 32" width="20" height="20" fill="none">
+            <path d="M16 5v9" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" />
+            <circle cx="16" cy="21" r="5.4" stroke="currentColor" strokeWidth="2.4" />
+            <path d="M7 26.5h18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+          </svg>
         </span>
         <span className="brand-text">
           <strong>BreakGlass</strong>

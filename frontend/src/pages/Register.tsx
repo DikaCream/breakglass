@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useBreakGlass } from "../context/BreakGlassContext";
-import { MIN_BAIL } from "../config";
+import { MIN_BAIL, formatGen } from "../config";
 
 export function Register() {
   const { run, busy, wallet } = useBreakGlass();
@@ -29,7 +29,7 @@ export function Register() {
     <div className="form-page">
       <h2>Put a contract under the breaker</h2>
       <p className="note">
-        Stake {formatBail()} GEN as bail and name an archive URL where the
+        Stake {formatGen(MIN_BAIL)} GEN as bail and name an archive URL where the
         deployed source lives. From the first block on, an accepted exploit
         alarm pauses your contract and a quarter of the bail pays the reporter.
       </p>
@@ -67,14 +67,8 @@ export function Register() {
         onClick={submit}
         disabled={busy !== null || !addr || !label || !archiveUrl || !wallet.address}
       >
-        {busy === "register" ? "Staking the bail…" : `Stake ${formatBail()} GEN bail`}
+        {busy === "register" ? "Staking the bail…" : `Stake ${formatGen(MIN_BAIL)} GEN bail`}
       </button>
     </div>
   );
-}
-
-function formatBail(): string {
-  const whole = MIN_BAIL / 10n ** 18n;
-  const frac = (MIN_BAIL % 10n ** 18n).toString().padStart(18, "0").replace(/0+$/, "");
-  return frac ? `${whole}.${frac}` : `${whole}`;
 }

@@ -90,6 +90,13 @@ export function TargetPage() {
         </div>
       </header>
 
+      {isOwner && target.status === "LIVE" && openAlarm && (
+        <p className="note">
+          An alarm is open, so the protection stays on and cannot be closed
+          until it settles.
+        </p>
+      )}
+
       {isOwner && target.status === "LIVE" && !openAlarm && (
         <section className="panel">
           <h3>Owner controls</h3>
@@ -151,14 +158,30 @@ export function TargetPage() {
       <section className="panel">
         <div className="panel-head">
           <h3>Alarms on this target</h3>
-          {openAlarm && <span className="note">one alarm at a time</span>}
+          {openAlarm ? (
+            <span className="note">one alarm at a time</span>
+          ) : (
+            target.status === "LIVE" && (
+              <Link className="btn fire small" to={`/targets/${tid}/alarm`}>
+                File an alarm
+              </Link>
+            )
+          )}
         </div>
         {alarms.length === 0 ? (
           <p className="note">No alarm has ever been filed here.</p>
         ) : (
           <div className="stack tight">
             {alarms.map((a) => (
-              <AlarmCard key={a.id} alarm={a} onNonce={setNonce} />
+              <AlarmCard
+                key={a.id}
+                alarm={a}
+                onNonce={setNonce}
+                onSettled={() => {
+                  setNonce(null);
+                  load();
+                }}
+              />
             ))}
           </div>
         )}
@@ -178,7 +201,15 @@ export function TargetPage() {
   );
 }
 
-function AlarmCard({ alarm, onNonce }: { alarm: Alarm; onNonce: (n: string) => void }) {
+function AlarmCard({
+  alarm,
+  onNonce,
+  onSettled,
+}: {
+  alarm: Alarm;
+  onNonce: (n: string) => void;
+  onSettled: () => void;
+}) {
   const { read, run, busy } = useBreakGlass();
 
   const showNonce = async () => {
@@ -199,7 +230,7 @@ function AlarmCard({ alarm, onNonce }: { alarm: Alarm; onNonce: (n: string) => v
 
   const review = async () => {
     if (await run(`review-${alarm.id}`, (c) => c.reviewAlarm(alarm.id))) {
-      window.location.reload();
+      onSettled();
     }
   };
 

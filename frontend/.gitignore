@@ -1,4 +1,3 @@
-node_modules/
-dist/
-.vercel/
-tsconfig.tsbuildinfo/
+.vercel
+.env*
+*.tsbuildinfo

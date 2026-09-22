@@ -117,6 +117,43 @@ h3 { font-size: 1.15rem; }
   border: 1px solid var(--line);
   border-radius: 8px;
 }
+.brand-mark svg { display: block; }
+
+/* ---------------------------------------------------------------- pages */
+.page-head {
+  margin: 0 0 1.4rem;
+  padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--line-soft);
+}
+.page-head h2 { margin-bottom: 0.25rem; }
+.page-head .note { margin: 0; }
+
+.lead {
+  color: var(--text-dim);
+  font-size: 1.02rem;
+  margin-top: -0.2rem;
+}
+
+.num-table {
+  width: 100%;
+  max-width: 420px;
+  border-collapse: collapse;
+  margin: 1.1rem 0 1.4rem;
+  font-size: 0.92rem;
+}
+.num-table th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-dim);
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.num-table td {
+  text-align: right;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--amber);
+}
 
 .brand-text { display: flex; flex-direction: column; line-height: 1.1; }
 .brand-text strong { font-weight: 800; letter-spacing: 0.01em; }
@@ -307,12 +344,14 @@ h3 { font-size: 1.15rem; }
   border: 1px solid var(--line-soft);
   background: var(--bg-2);
 }
+.plate.pending { border-color: rgba(255, 176, 61, 0.4); background: rgba(255, 176, 61, 0.05); }
 .plate.fired { border-color: rgba(255, 92, 61, 0.45); background: rgba(255, 92, 61, 0.06); }
 .plate.rejected { border-color: rgba(111, 158, 207, 0.35); }
 .plate.expired { border-color: rgba(255, 176, 61, 0.35); }
 
 .plate-head { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; }
 .plate-state { font-weight: 800; letter-spacing: 0.02em; }
+.plate.pending .plate-state { color: var(--amber); }
 .plate.fired .plate-state { color: var(--red); }
 .plate.rejected .plate-state { color: var(--blue); }
 .plate.expired .plate-state { color: var(--amber); }
