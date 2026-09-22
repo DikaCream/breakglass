@@ -36,6 +36,7 @@ Every action button ends in a contract call.
 contracts/break_glass.py     the breaker: targets, alarms, nonce handshake, verdicts, resume
 contracts/safe_vault.py      demo target that consults the breaker before moving money
 tests/direct/                the deterministic rule set, exhaustively, on a local VM
+tests/e2e_visitor_alarm.py    full visitor arc on live StudioNet: alarm, nonce, pause, payout, resume
 tests/integration/           the consensus paths on StudioNet
 tests/deploy_seed_breakglass.py   deploys and seeds a board with every state on it
 frontend/                    Vite + React app
