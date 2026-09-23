@@ -1,4 +1,9 @@
 import { Link } from "react-router-dom";
+import {
+  REPO_MAIN,
+  VULNERABLE_VAULT_RAW,
+  E2E_TEST_BLOB,
+} from "../lib/links";
 
 export function HowItWorks() {
   return (
@@ -83,6 +88,30 @@ export function HowItWorks() {
           </tr>
         </tbody>
       </table>
+
+      <h3>See the machine for yourself</h3>
+      <p>
+        Everything above is code you can read, not a description of code. The
+        repo holds the breaker, the protected vault, and a pre-patch
+        vulnerable vault that the demo alarms quote line for line.
+      </p>
+      <ul className="link-list">
+        <li>
+          <a href={REPO_MAIN} target="_blank" rel="noreferrer">
+            Full source tree
+          </a>
+        </li>
+        <li>
+          <a href={VULNERABLE_VAULT_RAW} target="_blank" rel="noreferrer">
+            Vulnerable vault fixture (what a report quotes)
+          </a>
+        </li>
+        <li>
+          <a href={E2E_TEST_BLOB} target="_blank" rel="noreferrer">
+            The end-to-end alarm flow, as an integration test
+          </a>
+        </li>
+      </ul>
 
       <p>
         <Link className="btn primary" to="/register">

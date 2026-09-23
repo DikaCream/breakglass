@@ -155,6 +155,23 @@ h3 { font-size: 1.15rem; }
   color: var(--amber);
 }
 
+/* Example box: the fixture pointer on the alarm form. */
+.example-box {
+  border: 1px dashed var(--line-soft);
+  border-radius: var(--radius);
+  padding: 0.9rem 1.05rem;
+  margin: 1.1rem 0;
+  background: rgba(255, 255, 255, 0.015);
+}
+.example-box .note { margin: 0 0 0.7rem; }
+.example-box .btn { display: inline-block; }
+
+.link-list { list-style: none; padding: 0; margin: 0.6rem 0 1.4rem; }
+.link-list li { padding: 0.45rem 0; border-bottom: 1px solid var(--line-soft); }
+.link-list li:last-child { border-bottom: none; }
+.link-list a { color: var(--amber); text-decoration: none; }
+.link-list a:hover { text-decoration: underline; }
+
 .brand-text { display: flex; flex-direction: column; line-height: 1.1; }
 .brand-text strong { font-weight: 800; letter-spacing: 0.01em; }
 .brand-text em {

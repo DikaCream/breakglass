@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useBreakGlass } from "../context/BreakGlassContext";
 import { ALARM_BOND, formatGen } from "../config";
+import { VULNERABLE_VAULT_RAW } from "../lib/links";
 
 export function FileAlarm() {
   const { id } = useParams();
@@ -33,6 +34,18 @@ export function FileAlarm() {
       {!wallet.address && (
         <p className="note bad">Connect a wallet first. The bond leaves it.</p>
       )}
+      <div className="example-box">
+        <p className="note">
+          A report that works quotes the target's <strong>actual deployed
+          code</strong> and shows the money moving. Need a starting point? The
+          repo ships a pre-patch vulnerable vault: open it, copy the quoted
+          snippet, write your report around it, deploy a copy as your target,
+          and point at it.
+        </p>
+        <a className="btn ghost small" href={VULNERABLE_VAULT_RAW} target="_blank" rel="noreferrer">
+          View the vulnerable vault fixture →
+        </a>
+      </div>
       <label className="field">
         <span>Report page URL</span>
         <input
