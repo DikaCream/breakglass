@@ -37,13 +37,12 @@ export function HowItWorks() {
         </li>
         <li>
           The report must carry the review's <strong>nonce</strong>, pinned
-          on-chain before the review runs. A page written before the alarm
-          cannot answer for it.
+          on-chain before the review runs. A pre-written report cannot carry
+          it.
         </li>
         <li>
-          Validators fetch the report themselves and judge it under the
-          equivalence principle: both must reach the same verdict before
-          anything is written.
+          Validators fetch the report themselves and judge it; they must
+          agree on the verdict before anything is written on-chain.
         </li>
       </ol>
 
@@ -91,24 +90,24 @@ export function HowItWorks() {
 
       <h3>See the machine for yourself</h3>
       <p>
-        Everything above is code you can read, not a description of code. The
-        repo holds the breaker, the protected vault, and a pre-patch
-        vulnerable vault that the demo alarms quote line for line.
+        Nothing above is a metaphor. The repo holds the breaker, the vault it
+        protects, and an intentionally vulnerable vault that alarm reports
+        quote line for line.
       </p>
       <ul className="link-list">
         <li>
           <a href={REPO_MAIN} target="_blank" rel="noreferrer">
-            Full source tree
+            Read the full source tree
           </a>
         </li>
         <li>
           <a href={VULNERABLE_VAULT_RAW} target="_blank" rel="noreferrer">
-            Vulnerable vault fixture (what a report quotes)
+            The vulnerable vault, exactly as a report quotes it
           </a>
         </li>
         <li>
           <a href={E2E_TEST_BLOB} target="_blank" rel="noreferrer">
-            The end-to-end alarm flow, as an integration test
+            The alarm flow end to end, as a runnable test
           </a>
         </li>
       </ul>

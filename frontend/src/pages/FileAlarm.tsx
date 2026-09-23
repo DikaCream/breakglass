@@ -28,7 +28,7 @@ export function FileAlarm() {
         Stake {formatGen(ALARM_BOND)} GEN and claim this contract is exploited
         right now. The report page must show a concrete, live exploit: the
         vulnerable code, the reproduction, and the money movement. If the
-        reviewers confirm it, the target pauses and a quarter of its bail is
+        validators confirm it, the target pauses and a quarter of its bail is
         yours. If they reject it, your bond burns into the bail.
       </p>
       {!wallet.address && (
@@ -36,11 +36,11 @@ export function FileAlarm() {
       )}
       <div className="example-box">
         <p className="note">
-          A report that works quotes the target's <strong>actual deployed
-          code</strong> and shows the money moving. Need a starting point? The
-          repo ships a pre-patch vulnerable vault: open it, copy the quoted
-          snippet, write your report around it, deploy a copy as your target,
-          and point at it.
+          A report that passes quotes the target's <strong>actual deployed
+          code</strong> and shows the money moving. The repo ships an
+          intentionally vulnerable vault for exactly this: deploy a copy as
+          your own target, then write your report around the code you
+          deployed.
         </p>
         <a className="btn ghost small" href={VULNERABLE_VAULT_RAW} target="_blank" rel="noreferrer">
           View the vulnerable vault fixture →
@@ -61,7 +61,7 @@ export function FileAlarm() {
           onChange={(e) => setReason(e.target.value)}
           rows={4}
           maxLength={2000}
-          placeholder="Withdrawal bypass through reentrancy: funds leave without authority, trace inside the report"
+          placeholder="Reentrant withdraw drains funds before the balance updates, full trace in the report"
         />
       </label>
       {localErr && <p className="note bad">{localErr}</p>}
