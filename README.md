@@ -6,10 +6,10 @@ It runs on [GenLayer](https://genlayer.com), so the verdict itself is consensus 
 
 ## How the pieces fit
 
-1. **Register.** The owner stakes 0.1 GEN bail and points the breaker at their contract plus a source archive. From that block on, an accepted alarm pauses the contract and a quarter of the bail pays whoever proved the exploit.
+1. **Register.** The owner stakes 0.1 GEN bail and points the breaker at their contract plus a source archive. From then on, a confirmed alarm pauses the contract and a quarter of the bail pays whoever proved the exploit.
 2. **Alarm.** A third party stakes a 0.01 GEN bond and files a report URL. The report has to show the vulnerable code, a working reproduction, and the money movement. Hypotheticals don't count.
 3. **Nonce handshake.** Before the review runs, the reporter pins a nonce on-chain and writes it into the report page. The nonce is derived from the alarm's own history, so a page written before the alarm existed can't answer for it. The contract checks the echo in code, not by trusting the model.
-4. **Review.** Validators fetch the report and judge it under the comparative equivalence principle. Exploited: the target pauses and the reporter collects. Rejected: the bond burns into the bail. Unreachable: the attempt records and the alarm stays open until the review budget runs out.
+4. **Review.** Validators fetch the report and judge it; they must agree on the verdict before anything is written on-chain. Exploited: the target pauses and the reporter collects. Rejected: the bond burns into the bail. Unreachable: the attempt records and the alarm stays open until the review budget runs out.
 5. **Resume.** The owner stakes the bond again and points at a fix page (a diff, a patch, a redeployment record). Validators judge the fix the same way. Bond back when it holds.
 6. **The gate.** The protected contract reads the breaker's verdict before moving money. No keeper, no cron. Paused means the very next deposit or withdrawal refuses; resumed means money moves again.
 
@@ -23,10 +23,11 @@ The demo target in `contracts/safe_vault.py` is a small deposit vault wired to t
 Walk the whole flow in the browser:
 
 1. Open a target with no open alarm and press **File an alarm**.
-2. Point the report at a page you control (a fresh webhook.site page works) and describe the exploit.
-3. Press **Reserve nonce**, then copy the nonce into the report page before going further.
-4. Press **Run the review**. Validators fetch the page and the verdict lands on-chain.
-5. Own a paused target? Submit a fix page under **Resume with a fix** to lift the pause.
+2. Need code to quote? The repo ships `contracts/_vulnerable_vault.py`, a pre-patch target you can deploy as your own and report on honestly.
+3. Point the report at a page you control (a fresh webhook.site page works) and describe the exploit.
+4. Press **Reserve nonce**, then copy the nonce into the report page before going further.
+5. Press **Run the review**. Validators fetch the page and the verdict lands on-chain.
+6. Own a paused target? Submit a fix page under **Resume with a fix** to lift the pause.
 
 Every action button ends in a contract call.
 
@@ -35,6 +36,7 @@ Every action button ends in a contract call.
 ```
 contracts/break_glass.py     the breaker: targets, alarms, nonce handshake, verdicts, resume
 contracts/safe_vault.py      demo target that consults the breaker before moving money
+contracts/_vulnerable_vault.py   pre-patch target a report can quote honestly
 tests/direct/                the deterministic rule set, exhaustively, on a local VM
 tests/e2e_visitor_alarm.py    full visitor arc on live StudioNet: alarm, nonce, pause, payout, resume
 tests/integration/           the consensus paths on StudioNet
