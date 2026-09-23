@@ -29,9 +29,9 @@ export function Register() {
     <div className="form-page">
       <h2>Put a contract under the breaker</h2>
       <p className="note">
-        Stake {formatGen(MIN_BAIL)} GEN as bail and name an archive URL where the
-        deployed source lives. From the first block on, an accepted exploit
-        alarm pauses your contract and a quarter of the bail pays the reporter.
+        Stake {formatGen(MIN_BAIL)} GEN as bail and give a URL where the
+        deployed source lives. From then on, a confirmed exploit pauses your
+        contract and a quarter of the bail pays the reporter.
       </p>
       {!wallet.address && (
         <p className="note bad">Connect a wallet first. The bail leaves it.</p>

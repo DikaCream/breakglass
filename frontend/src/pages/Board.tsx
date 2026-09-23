@@ -42,7 +42,7 @@ export function Board() {
       <>
         <PageHead />
         <div className="empty">
-          <p>No contract stands under the breaker yet.</p>
+          <p>No contract is under the breaker yet.</p>
           <Link className="btn primary" to="/register">
             Put a contract under it
           </Link>

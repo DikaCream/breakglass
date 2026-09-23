@@ -169,7 +169,7 @@ export function TargetPage() {
           )}
         </div>
         {alarms.length === 0 ? (
-          <p className="note">No alarm has ever been filed here.</p>
+          <p className="note">No alarm has been filed here yet.</p>
         ) : (
           <div className="stack tight">
             {alarms.map((a) => (
