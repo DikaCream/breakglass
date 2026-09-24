@@ -2,9 +2,11 @@ import { CONTRACT_ADDRESS } from "../config";
 import {
   Alarm,
   AlarmSummary,
+  ConsentInfo,
   Stats,
   Target,
   TargetSummary,
+  addr,
   toAlarm,
   toAlarmSummary,
   toStats,
@@ -15,9 +17,13 @@ import {
 export class BreakGlass {
   constructor(private client: any, private address: string = CONTRACT_ADDRESS) {}
 
-  private async read(functionName: string, args: unknown[] = []): Promise<any> {
+  private async read(
+    functionName: string,
+    args: unknown[] = [],
+    at?: string,
+  ): Promise<any> {
     return this.client.readContract({
-      address: this.address as `0x${string}`,
+      address: (at ?? this.address) as `0x${string}`,
       functionName,
       args,
     });
@@ -83,6 +89,17 @@ export class BreakGlass {
 
   async alarmReviewNonce(alarmId: number): Promise<string> {
     return String(await this.read("alarm_review_nonce", [alarmId]));
+  }
+
+  /** What the target contract reports about its own registration. */
+  async breakglassRegistration(contractAddrHex: string): Promise<ConsentInfo | null> {
+    try {
+      const v = await this.read("breakglass_registration", [], contractAddrHex);
+      if (v == null) return null;
+      return { breaker: addr(v.breaker), owner: addr(v.owner), closed: Boolean(v.closed) };
+    } catch {
+      return null;
+    }
   }
 
   // ---- writes ---------------------------------------------------------

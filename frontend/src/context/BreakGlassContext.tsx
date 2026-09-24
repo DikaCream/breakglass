@@ -21,7 +21,14 @@ const EMPTY_STATS: Stats = {
   closed: 0,
   totalBail: 0n,
   totalBonds: 0n,
+  totalBailIn: 0n,
+  totalBailOut: 0n,
+  totalBondsIn: 0n,
+  totalBondsOut: 0n,
+  totalBurned: 0n,
   totalPaid: 0n,
+  bailConsistent: true,
+  bondsConsistent: true,
 };
 
 interface BreakGlassCtx {

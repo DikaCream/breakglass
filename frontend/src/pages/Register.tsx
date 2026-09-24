@@ -29,15 +29,25 @@ export function Register() {
     <div className="form-page">
       <h2>Put a contract under the breaker</h2>
       <p className="note">
+        Registration is a two-sided handshake. Your contract must be built
+        for this: it pins this breaker's address at deploy time, answers the
+        breaker's consent read from a <span className="mono">breakglass_registration</span> view, and confirms the registration
+        with its own write. Only the contract's own owner can register it, a
+        contract already under the breaker is refused, and the gate arms only
+        after the handshake lands. See the demo vault in the repo for the
+        exact surface.
+      </p>
+      <p className="note">
         Stake {formatGen(MIN_BAIL)} GEN as bail and give a URL where the
-        deployed source lives. From then on, a confirmed exploit pauses your
+        deployed source lives: validators fetch it to judge whether reports
+        quote the real code. From then on, a confirmed exploit pauses your
         contract and a quarter of the bail pays the reporter.
       </p>
       {!wallet.address && (
         <p className="note bad">Connect a wallet first. The bail leaves it.</p>
       )}
       <label className="field">
-        <span>Protected contract address</span>
+        <span>Protected contract address (built against this breaker)</span>
         <input
           value={addr}
           onChange={(e) => setAddr(e.target.value)}

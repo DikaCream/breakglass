@@ -1,10 +1,10 @@
 # { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
 """VulnerableVault: the pre-fix draft of SafeVault, kept as a live fixture.
 
-This is the historical buggy version of the demo vault: the external
-transfer in withdraw() fires before the balance update, so a reentrant
-receiver can drain the vault. It exists so the exploit reports in the tests
-quote the exact code that is deployed — anyone can diff it against the
+This is the historical buggy version of the demo vault: withdraw_for()
+moves any account's balance out with no access check, and pays the CALLER,
+so anyone can drain anyone. It exists so the exploit reports in the tests
+quote the exact code that is deployed, and anyone can diff it against the
 patched contracts/safe_vault.py in the same repository. It is deliberately
 not wired to the breaker: an unprotected contract is exactly what the
 breaker is for.
@@ -44,9 +44,20 @@ class VulnerableVault(gl.Contract):
         cur = int(self.balances.get(to, u256(0)))
         if int(amount) <= 0 or int(amount) > cur:
             raise gl.vm.UserError("withdraw more than your balance")
-        # BUG: the external transfer fires BEFORE the storage update.
         gl.emit_transfer(to, value=u256(int(amount)))
         self.balances[to] = u256(cur - int(amount))
+
+    @gl.public.write
+    def withdraw_for(self, from_hex: str, amount: u256) -> None:
+        # BUG: no authorization at all. The funds come out of ``from``'s
+        # balance and land in the CALLER's wallet: anyone can drain anyone.
+        src = Address(from_hex)
+        cur = int(self.balances.get(src, u256(0)))
+        if int(amount) <= 0 or int(amount) > cur:
+            raise gl.vm.UserError("withdraw more than that balance")
+        to = gl.message.sender_address
+        self.balances[src] = u256(cur - int(amount))
+        gl.emit_transfer(to, value=u256(int(amount)))
 
     @gl.public.view
     def balance_of(self, who_hex: str) -> int:

@@ -6,6 +6,12 @@ the BreakGlass breaker first: while an accepted alarm against this vault
 stands unpaused, the vault refuses to move money. The gate is pull-model, so
 the vault keeps working with no keeper and no cron: it just reads the
 breaker's verdict for itself before acting.
+
+Registration is a two-sided handshake. The vault pins its breaker at deploy
+time and answers the breaker's consent read from
+``breakglass_registration``: the breaker accepts a registration only when
+it is the pinned breaker and the registrant is the vault's own owner. The
+breaker's registry stays the single source of truth for who is protected.
 """
 
 from genlayer import *  # noqa: F401 - re-exports gl
@@ -20,6 +26,7 @@ class SafeVault(gl.Contract):
     total_deposits: u256
     paused_halt: bool
     last_gate_check: str
+    registration_open: bool
 
     def __init__(self, breaker_hex: str):
         self.breaker_addr = Address(breaker_hex)
@@ -27,6 +34,40 @@ class SafeVault(gl.Contract):
         self.total_deposits = u256(0)
         self.paused_halt = False
         self.last_gate_check = ""
+        self.registration_open = False
+
+    # ------------------------------------------------- the consent surface
+    @gl.public.view
+    def breakglass_registration(self) -> dict:
+        """What a breaker reads before accepting this vault.
+
+        Reports the pinned breaker, the vault's own owner, and whether a
+        registration handshake has already landed and is still open. A
+        breaker only accepts a registration when it is the pinned one, the
+        registrant is this owner, and no open registration stands.
+        """
+        return {
+            "breaker": self.breaker_addr,
+            "owner": self.owner_addr,
+            "registered": self.registration_open,
+        }
+
+    def _only_owner(self) -> None:
+        if gl.message.sender_address != self.owner_addr:
+            raise gl.vm.UserError("only the owner can arm or disarm the local gate")
+
+    @gl.public.write
+    def arm_gate(self, enabled: bool) -> None:
+        """Arm or disarm the local pull-model gate.
+
+        The owner flips this once the breaker's registry shows the vault as
+        protected (the consent read is the binding handshake; this flag only
+        decides whether the vault consults the breaker before moving money).
+        It is a convenience switch for the demo, not a safety feature: the
+        breaker's registry, not this flag, decides who is protected.
+        """
+        self._only_owner()
+        self.registration_open = bool(enabled)
 
     # ------------------------------------------------------------- the gate
     def _gate(self) -> None:
@@ -109,4 +150,5 @@ class SafeVault(gl.Contract):
             "last_gate_check": self.last_gate_check,
             "owner": self.owner_addr,
             "breaker": self.breaker_addr,
+            "registration_open": self.registration_open,
         }

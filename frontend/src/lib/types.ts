@@ -45,6 +45,12 @@ export interface AlarmSummary {
   status: AlarmStatus;
 }
 
+export interface ConsentInfo {
+  breaker: string;
+  owner: string;
+  closed: boolean;
+}
+
 export interface Stats {
   targets: number;
   alarms: number;
@@ -53,7 +59,14 @@ export interface Stats {
   closed: number;
   totalBail: bigint;
   totalBonds: bigint;
+  totalBailIn: bigint;
+  totalBailOut: bigint;
+  totalBondsIn: bigint;
+  totalBondsOut: bigint;
+  totalBurned: bigint;
   totalPaid: bigint;
+  bailConsistent: boolean;
+  bondsConsistent: boolean;
 }
 
 function addr(v: unknown): string {
@@ -68,6 +81,8 @@ function addr(v: unknown): string {
   }
   return String(v);
 }
+
+export { addr };
 
 function big(v: unknown): bigint {
   try {
@@ -145,7 +160,14 @@ export function toStats(v: any): Stats {
     closed: num(v.closed),
     totalBail: big(v.total_bail),
     totalBonds: big(v.total_bonds),
+    totalBailIn: big(v.total_bail_in),
+    totalBailOut: big(v.total_bail_out),
+    totalBondsIn: big(v.total_bonds_in),
+    totalBondsOut: big(v.total_bonds_out),
+    totalBurned: big(v.total_burned),
     totalPaid: big(v.total_paid),
+    bailConsistent: Boolean(v.bail_consistent),
+    bondsConsistent: Boolean(v.bonds_consistent),
   };
 }
 

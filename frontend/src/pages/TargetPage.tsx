@@ -101,8 +101,9 @@ export function TargetPage() {
         <section className="panel">
           <h3>Owner controls</h3>
           <p className="note">
-            Closing ends the protection and returns the bail. It only works when
-            no alarm is open and the target is not paused.
+            Closing ends the protection and returns the bail, including any
+            bond a false reporter burned into it. It only works when no alarm
+            is open and the target is not paused.
           </p>
           <button className="btn ghost" onClick={close} disabled={busy !== null}>
             {busy === `close-${tid}` ? "Closing…" : "Close protection"}
@@ -114,9 +115,11 @@ export function TargetPage() {
         <section className="panel fire">
           <h3>Resume with a fix</h3>
           <p className="note">
-            Publish a page showing the concrete fix (diff, patch, or
-            redeployment record), stake {formatGen(ALARM_BOND)} GEN, and the
-            validators judge it. The bond comes back when the fix holds.
+            Publish a page showing the concrete fix to this contract (diff,
+            patch, or redeployment record, quoting the registered source) and
+            naming the contract address {hexAddr(target.contractAddr)}. Stake{" "}
+            {formatGen(ALARM_BOND)} GEN, and the validators judge it. The stake
+            comes back when the fix holds.
           </p>
           <label className="field">
             <span>Fix page URL</span>
@@ -189,10 +192,12 @@ export function TargetPage() {
 
       {nonce && (
         <section className="panel mono nonce-panel">
-          <h3>Review nonce</h3>
+          <h3>Review nonce, reserved on-chain</h3>
           <p className="note">
-            Write this value into the report page, then trigger the review. A
-            report without it proves nothing.
+            This value is pinned in the contract's storage, so it holds until a
+            review consumes it. Write it, and the contract address above, into
+            the report page, then run the review. A report without both proves
+            nothing.
           </p>
           <code className="nonce">{nonce}</code>
         </section>
@@ -212,16 +217,9 @@ function AlarmCard({
 }) {
   const { read, run, busy } = useBreakGlass();
 
-  const showNonce = async () => {
-    try {
-      const n = await read.alarmReviewNonce(alarm.id);
-      onNonce(n);
-    } catch {
-      onNonce("unavailable");
-    }
-  };
-
   const reserve = async () => {
+    // Reserve first, present second: the displayed value is the pinned one,
+    // written into the contract's storage by this very transaction.
     if (await run(`reserve-${alarm.id}`, (c) => c.reserveReviewNonce(alarm.id))) {
       const n = await read.alarmReviewNonce(alarm.id);
       onNonce(n);
@@ -253,13 +251,10 @@ function AlarmCard({
         <span className="mono bail">{formatGen(alarm.bond)} GEN bond</span>
         {alarm.status === "PENDING" && (
           <div className="btn-row">
-            <button className="btn ghost small" onClick={reserve} disabled={busy !== null}>
-              {busy === `reserve-${alarm.id}` ? "Reserving…" : "Reserve nonce"}
+            <button className="btn primary small" onClick={reserve} disabled={busy !== null}>
+              {busy === `reserve-${alarm.id}` ? "Reserving…" : "Reserve the review nonce"}
             </button>
-            <button className="btn ghost small" onClick={showNonce} disabled={busy !== null}>
-              Read nonce
-            </button>
-            <button className="btn primary small" onClick={review} disabled={busy !== null}>
+            <button className="btn ghost small" onClick={review} disabled={busy !== null}>
               {busy === `review-${alarm.id}` ? "Reviewing…" : "Run the review"}
             </button>
           </div>

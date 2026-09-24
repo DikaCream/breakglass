@@ -26,10 +26,12 @@ export function FileAlarm() {
       <h2>File an alarm on target #{tid}</h2>
       <p className="note">
         Stake {formatGen(ALARM_BOND)} GEN and claim this contract is exploited
-        right now. The report page must show a concrete, live exploit: the
-        vulnerable code, the reproduction, and the money movement. If the
-        validators confirm it, the target pauses and a quarter of its bail is
-        yours. If they reject it, your bond burns into the bail.
+        right now. The report page must show a concrete, live exploit of the
+        registered contract: the vulnerable code (matching the registered
+        source archive), the reproduction, the money movement, and the
+        contract's address. If the validators confirm it, the target pauses,
+        a quarter of its bail pays you, and your bond comes home. If they
+        reject it, your bond burns into the target's bail.
       </p>
       {!wallet.address && (
         <p className="note bad">Connect a wallet first. The bond leaves it.</p>
@@ -37,10 +39,12 @@ export function FileAlarm() {
       <div className="example-box">
         <p className="note">
           A report that passes quotes the target's <strong>actual deployed
-          code</strong> and shows the money moving. The repo ships an
-          intentionally vulnerable vault for exactly this: deploy a copy as
-          your own target, then write your report around the code you
-          deployed.
+          code</strong>, names the registered contract address, and shows the
+          money moving. The repo ships an intentionally vulnerable vault for
+          exactly this: deploy a copy as your own target, then write your
+          report around the code you deployed. After filing, reserve the
+          review nonce on-chain and add it to the page before anyone runs the
+          review.
         </p>
         <a className="btn ghost small" href={VULNERABLE_VAULT_RAW} target="_blank" rel="noreferrer">
           View the vulnerable vault fixture →

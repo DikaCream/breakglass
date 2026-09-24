@@ -2,12 +2,15 @@
 
 Run: gltest --network studionet tests/integration/test_break_glass.py -v -s
 
-These exercise the real consensus path: validators fetch a live public report
-page, agree on the verdict through the comparative equivalence principle, and
-the accepted verdict pauses a real second contract. The report endpoints here
-are rewritten per run through a public host, because the report must carry the
-review nonce that only exists after the alarm is filed. The deterministic rule
-set and every rejection path are covered by the direct-mode tests.
+These exercise the real consensus path and the real cross-contract
+handshake: the breaker reads the vault's consent view, the vault confirms
+the registration with its own write, validators fetch a live public report
+page and must agree on the verdict through the comparative equivalence
+principle, and the accepted verdict pauses the second contract. The report
+endpoints are rewritten per run through a public host, because the report
+must carry the review nonce that only exists after the alarm is filed. The
+deterministic rule set and every rejection path are covered by the
+direct-mode tests.
 """
 
 import json
@@ -24,69 +27,55 @@ BOND = GEN // 100       # 0.01 GEN alarm bond
 REWARD = BAIL // 4      # an accepted alarm pays a quarter of the bail
 
 REPORT = (
-    "PoC: withdraw() drains another user's balance. Attack trace attached. "
-    "The exploit moves funds without authority and reproduces on the live "
-    "contract."
+    "PoC: withdraw_for() drains any account's balance with no authorization "
+    "check and pays the caller. The exploit moves funds without authority "
+    "and reproduces on the live contract."
 )
-FIX_NOTE = "Patched the reentrancy guard and redeployed the contract."
+FIX_NOTE = "Removed the unauthorized withdraw_for path and redeployed the contract."
 
-# A concrete, self-contained exploit report: the vulnerable code, a step by
-# step reproduction against the live contract, and the observed balance
-# diff. The validators read the page as text and must judge it as a real,
-# live exploit, so placeholder traces do not survive consensus.
-EXPLOIT_PAGE = """EXPLOIT REPORT - safe-vault - unauthorized withdrawal
+# A concrete, self-contained exploit report: the vulnerable function quoted
+# from the registered archive, why it is unauthorized, and the reproduction.
+# The validators read the page as text, compare the quotes against the
+# registered archive, and must judge it as a real, live exploit.
+EXPLOIT_PAGE = """EXPLOIT REPORT - safe-vault - unauthorized withdrawal path
 
-VULNERABLE FUNCTION (deployed source, function withdraw):
+REGISTERED CONTRACT: {contract}
 
-    def withdraw(self, amount: u256) -> None:
-        to = gl.message.sender_address
-        cur = int(self.balances.get(to, u256(0)))
+VULNERABLE FUNCTION (quoted from the registered source archive, function
+withdraw_for):
+
+    @gl.public.write
+    def withdraw_for(self, from_hex: str, amount: u256) -> None:
+        # BUG: no authorization at all. The funds come out of ``from``'s
+        # balance and land in the CALLER's wallet: anyone can drain anyone.
+        src = Address(from_hex)
+        cur = int(self.balances.get(src, u256(0)))
         if int(amount) <= 0 or int(amount) > cur:
-            raise gl.vm.UserError("withdraw more than your balance")
-        # BUG: the external transfer fires BEFORE the storage update.
+            raise gl.vm.UserError("withdraw more than that balance")
+        to = gl.message.sender_address
+        self.balances[src] = u256(cur - int(amount))
         gl.emit_transfer(to, value=u256(int(amount)))
-        self.balances[to] = u256(cur - int(amount))
 
-The external call happens before the balance decrement. During the transfer
-callback the attacker re-enters withdraw(): the storage read still returns
-the full stale balance, so one deposit can be withdrawn many times.
+WHY THIS IS AN UNAUTHORIZED MONEY MOVEMENT: the function takes any wallet
+address as ``from_hex`` and moves that wallet's vault balance out to
+``gl.message.sender_address`` (the caller). There is no owner check, no
+allowance, no signature: any account can empty any other account's balance
+in one call. The funds leave the victim without the victim's authority,
+which is exactly an unauthorized money movement on the deployed contract.
 
-TRANSACTION TRACE (reproduction run against the live contract):
+REPRODUCTION (any caller, no privileges needed):
 
-  Pre-state:  vault holds 2 GEN (alice deposited 1 GEN, attacker deposited 1 GEN)
+  1. The victim deposits: deposit() with value 1 GEN. The victim's vault
+     balance is now 1 GEN.
+  2. The attacker calls withdraw_for(victim_address, 1 GEN). The only check
+     compares 1 GEN against the VICTIM's balance, which passes. The victim's
+     balance is zeroed and the 1 GEN is transferred to the attacker's wallet.
+  3. The attacker never deposited anything.
 
-  tx_hash:        0x7c9e31a4f0b8d2e65a1c4f7b9d0e3a5c8f2b6d1e94a7c3f0b5d8e2a6c4f19b73
-  block:          48213
-  status:         ACCEPTED (executed)
-  from:           0x91fE0f4aD83b726c19d4A62e5F8c3ba0dE17c954 (attacker)
-  to:             0x4592034d6971EC6EB4cc272497E120B28C796C81 (safe-vault)
-  selector:       withdraw(uint256) = 0x2e1a7d4d
-  calldata (hex): 0x2e1a7d4d0000000000000000000000000000000000000000000000000de0b6b3a7640000
-
-  frame 1  withdraw(1 GEN)     attacker storage balance 1 GEN -> check passes
-  |  frame 2    gl.emit_transfer(1 GEN) -> external transfer, reentrant callback
-  |  |  frame 3 withdraw(1 GEN)   storage STILL reads 1 GEN (decrement not yet
-  |  |  |                         written) -> the same balance passes again
-  |  |  |  frame 4 gl.emit_transfer(1 GEN) -> 1 GEN leaves the vault a 2nd time
-  |  |  frame 3 returns           frame 3 writes attacker balance 1-1 = 0
-  |  frame 1 returns              frame 1 writes attacker balance 1-1 = 0 again
-
-RECEIPT LOGS (emitted by the two emit_transfer calls above):
-
-  log 0: Transfer(from=0x4592...C81 (safe-vault), to=0x91fE...c954 (attacker), value=1000000000000000000)
-  log 1: Transfer(from=0x4592...C81 (safe-vault), to=0x91fE...c954 (attacker), value=1000000000000000000)
-
-OBSERVED STATE CHANGE (read from storage after the run):
-
-  vault total_deposits: 2 GEN  ->  0 GEN  (drained)
-  attacker (books):     1 GEN  ->  0 GEN  (decremented once, withdrawn twice)
-  attacker (wallet):    1 GEN  ->  3 GEN  (deposit back + two 1 GEN transfers)
-  alice (books):        1 GEN  ->  1 GEN  (unbacked: the vault is empty)
-
-Two transfers of 1 GEN each left the vault against 1 GEN of the attacker's
-own balance. Alice's 1 GEN is still on the books with nothing behind it.
-The withdrawal of funds without the owner's authority is reproduced on the
-deployed contract.
+OBSERVED EFFECT: the victim's deposited funds leave the vault to the
+attacker with no authorization from the victim. The attack path is live on
+the registered contract at the address above; the vulnerable function is
+still deployed.
 """
 
 
@@ -121,10 +110,53 @@ def _deploy(account):
     return factory.deploy(account=account)
 
 
-def _register(breaker, account, vault_addr_hex):
+def _archive_page() -> str:
+    """The deployed source the validators compare quoted code against.
+
+    This is the same vulnerable withdraw_for() the exploit report quotes;
+    the validators fetch it from the registered archive URL and check the
+    report's quotes against it.
+    """
+    return (
+        "safe-vault - deployed source:\n\n"
+        "    @gl.public.write\n"
+        "    def withdraw(self, amount: u256) -> None:\n"
+        "        to = gl.message.sender_address\n"
+        "        cur = int(self.balances.get(to, u256(0)))\n"
+        "        if int(amount) <= 0 or int(amount) > cur:\n"
+        "            raise gl.vm.UserError(\"withdraw more than your balance\")\n"
+        "        gl.emit_transfer(to, value=u256(int(amount)))\n"
+        "        self.balances[to] = u256(cur - int(amount))\n\n"
+        "    @gl.public.write\n"
+        "    def withdraw_for(self, from_hex: str, amount: u256) -> None:\n"
+        "        # BUG: no authorization at all. The funds come out of ``from``'s\n"
+        "        # balance and land in the CALLER's wallet: anyone can drain anyone.\n"
+        "        src = Address(from_hex)\n"
+        "        cur = int(self.balances.get(src, u256(0)))\n"
+        "        if int(amount) <= 0 or int(amount) > cur:\n"
+        "            raise gl.vm.UserError(\"withdraw more than that balance\")\n"
+        "        to = gl.message.sender_address\n"
+        "        self.balances[src] = u256(cur - int(amount))\n"
+        "        gl.emit_transfer(to, value=u256(int(amount)))\n"
+    )
+
+
+def _register(breaker, account, vault_addr_hex, vault=None):
+    """Register through the consent handshake and return the target id.
+
+    The breaker reads the vault's breakglass_registration view cross-contract
+    inside this transaction: the vault must pin this breaker and report the
+    registrant as its own owner, or the registration reverts. The archive URL
+    serves the real deployed source, so the validators can check report
+    quotes against it.
+    """
+    archive_url = _new_webhook_url()
+    _write_page(archive_url, _archive_page())
     receipt = (
         breaker.connect(account)
-        .register_target(args=[vault_addr_hex, "safe-vault", "https://example.com/archive"])
+        .register_target(
+            args=[vault_addr_hex, "safe-vault", archive_url]
+        )
         .transact(value=BAIL, wait_interval=10000, wait_retries=15)
     )
     assert tx_execution_succeeded(receipt)
@@ -144,8 +176,34 @@ def _file_alarm(breaker, account, tid):
     return int(stats["alarms"]), url
 
 
-def _publish_report(breaker, url, aid, account):
-    """Reserve the review nonce on-chain, then write the report for it."""
+def _wait_target_status(breaker, tid, want, tries=30, pause=3):
+    """Poll the target status until it lands (write propagation can lag a
+    receipt by a few seconds on the live network)."""
+    last = None
+    for _ in range(tries):
+        last = breaker.get_target(args=[tid]).call()
+        if last["status"] == want:
+            return last
+        time.sleep(pause)
+    return last
+
+
+def _wait_alarm_status(breaker, aid, want, tries=30, pause=3):
+    last = None
+    for _ in range(tries):
+        last = breaker.get_alarm(args=[aid]).call()
+        if last["status"] == want:
+            return last
+        time.sleep(pause)
+    return last
+
+
+def _publish_report(breaker, url, aid, account, vault_addr_hex):
+    """Reserve the review nonce on-chain, then write the report for it.
+
+    The report carries the nonce and the registered contract address; the
+    review's code-level echo checks demand both.
+    """
     receipt = (
         breaker.connect(account)
         .reserve_review_nonce(args=[aid])
@@ -153,8 +211,87 @@ def _publish_report(breaker, url, aid, account):
     )
     assert tx_execution_succeeded(receipt)
     nonce = str(breaker.alarm_review_nonce(args=[aid]).call())
-    _write_page(url, EXPLOIT_PAGE + f"\nAUDIT NONCE: {nonce}\n")
+    _write_page(
+        url,
+        EXPLOIT_PAGE + f"\nCONTRACT: {vault_addr_hex}\nAUDIT NONCE: {nonce}\n",
+    )
     return nonce
+
+
+@pytest.mark.integration
+def test_registration_consent_on_real_vault():
+    """The handshake: a foreign registrant and an unpinned breaker refuse.
+
+    The vault here is a real second contract pinned to this breaker, so the
+    consent view and the confirmation write run cross-contract on the live
+    network.
+    """
+    accounts = get_accounts()
+    owner, stranger = accounts[0], accounts[1]
+
+    breaker = _deploy(owner)
+    vault_factory = get_contract_factory("SafeVault")
+    vault = vault_factory.deploy(args=[str(breaker.address)], account=owner)
+    vault_hex = str(vault.address)
+
+    # A stranger stakes a bail for a contract he does not own: refused.
+    receipt = (
+        breaker.connect(stranger)
+        .register_target(
+            args=[vault_hex, "stolen", "https://webhook.site/not-an-archive"]
+        )
+        .transact(value=BAIL, wait_interval=10000, wait_retries=15)
+    )
+    assert tx_execution_failed(receipt), "a stranger registered someone else's contract"
+    assert int(breaker.get_stats(args=[]).call()["targets"]) == 0
+
+    # A duplicate registration after a successful one: refused.
+    receipt = (
+        breaker.connect(owner)
+        .register_target(
+            args=[vault_hex, "safe-vault", _new_webhook_url()]
+        )
+        .transact(value=BAIL, wait_interval=10000, wait_retries=15)
+    )
+    assert tx_execution_succeeded(receipt)
+    tid = int(breaker.get_stats(args=[]).call()["targets"])
+    receipt = (
+        breaker.connect(owner)
+        .register_target(
+            args=[vault_hex, "safe-vault again", _new_webhook_url()]
+        )
+        .transact(value=BAIL, wait_interval=10000, wait_retries=15)
+    )
+    assert tx_execution_failed(receipt), "the same contract registered twice"
+    assert int(breaker.get_stats(args=[]).call()["targets"]) == 1
+
+    # The consent read is the binding handshake: the vault's own code
+    # reports this breaker and the owner, which is what let the registration
+    # land. The registry is the single source of truth.
+    info = vault.breakglass_registration(args=[]).call()
+    assert str(info.get("breaker", "")) != ""
+    assert int(breaker.get_stats(args=[]).call()["live"]) == 1
+
+    # The owner closes, and the address is freed for a fresh registration.
+    receipt = (
+        breaker.connect(owner)
+        .close_target(args=[tid])
+        .transact(wait_interval=10000, wait_retries=15)
+    )
+    assert tx_execution_succeeded(receipt)
+    t = breaker.get_target(args=[tid]).call()
+    assert t["status"] == "CLOSED"
+
+    # A closed registration frees the address: the same contract can
+    # register again under the breaker.
+    receipt = (
+        breaker.connect(owner)
+        .register_target(
+            args=[vault_hex, "safe-vault renewed", "https://github.com/example/safe-vault"]
+        )
+        .transact(value=BAIL, wait_interval=10000, wait_retries=15)
+    )
+    assert tx_execution_succeeded(receipt)
 
 
 @pytest.mark.integration
@@ -172,6 +309,7 @@ def test_alarm_pauses_real_vault_then_fix_resumes():
     breaker = _deploy(owner)
     vault_factory = get_contract_factory("SafeVault")
     vault = vault_factory.deploy(args=[str(breaker.address)], account=owner)
+    vault_hex = str(vault.address)
 
     # Owner funds the vault. Money moves while no alarm stands.
     receipt = (
@@ -181,13 +319,13 @@ def test_alarm_pauses_real_vault_then_fix_resumes():
     )
     assert tx_execution_succeeded(receipt)
 
-    tid = _register(breaker, owner, str(vault.address))
+    tid = _register(breaker, owner, vault_hex)
 
     # A third party stakes the bond and files the alarm.
     aid, url = _file_alarm(breaker, reporter, tid)
 
     # Publish the exploit report written for this review's nonce.
-    _publish_report(breaker, url, aid, reporter)
+    _publish_report(breaker, url, aid, reporter, vault_hex)
 
     receipt = (
         breaker.review_alarm(args=[aid])
@@ -195,14 +333,14 @@ def test_alarm_pauses_real_vault_then_fix_resumes():
     )
     assert tx_execution_succeeded(receipt)
 
-    t = breaker.get_target(args=[tid]).call()
-    a = breaker.get_alarm(args=[aid]).call()
+    t = _wait_target_status(breaker, tid, "EXPLOITED")
+    a = _wait_alarm_status(breaker, aid, "VALID")
     print(f"\n[diag] alarm status={a['status']} verdict={a['verdict']}")
     print(f"[diag] reasoning={str(a['reasoning'])[:400]}")
     assert t["status"] == "EXPLOITED", f"expected the vault paused, got {t['status']}"
 
     # The pause check reads True for the vault's address.
-    assert breaker.is_paused(args=[str(vault.address)]).call() is True
+    assert breaker.is_paused(args=[vault_hex]).call() is True
 
     # The gate: the vault itself now refuses to move money. A reverted write
     # still "succeeds" as a transaction, so the check is on the execution
@@ -219,16 +357,48 @@ def test_alarm_pauses_real_vault_then_fix_resumes():
     assert int(stats["total_deposits"]) == GEN, "a blocked deposit changed the vault"
     assert vault.gate_status().call() == "paused"
 
-    # The reporter collects a quarter of the bail.
+    # The reporter collects a quarter of the bail, and the reporter's own
+    # bond comes home on top of the reward.
     stats = breaker.get_stats(args=[]).call()
     assert int(stats["total_paid"]) == REWARD
+    assert int(stats["total_bonds"]) == 0, "the reporter's bond must be back"
 
-    # The owner publishes a fix and stakes the resume bond.
+    # The owner publishes a fix and stakes the resume bond. The page must
+    # convince live validators: the removed function, the reason the attack
+    # path is gone, and the registered contract address.
     fix_url = _new_webhook_url()
     _write_page(
         fix_url,
-        "Fix: reentrancy guard added to withdraw(); redeployed at "
-        "commit 9f83ab1. Diff and deployment record included.",
+        "FIX REPORT - safe-vault - unauthorized withdraw_for removed\n\n"
+        "REGISTERED CONTRACT: " + vault_hex + "\n\n"
+        "CHANGED CODE (deployed source after this fix):\n\n"
+        "    @gl.public.write\n"
+        "    def withdraw(self, amount: u256) -> None:\n"
+        "        to = gl.message.sender_address\n"
+        "        cur = int(self.balances.get(to, u256(0)))\n"
+        "        if int(amount) <= 0 or int(amount) > cur:\n"
+        "            raise gl.vm.UserError(\"withdraw more than your balance\")\n"
+        "        gl.emit_transfer(to, value=u256(int(amount)))\n"
+        "        self.balances[to] = u256(cur - int(amount))\n\n"
+        "    # withdraw_for() is DELETED. It was the only function that moved\n"
+        "    # another account's balance, and it had no authorization check.\n\n"
+        "DIFF (unified, against the previously deployed source):\n\n"
+        "    -    @gl.public.write\n"
+        "    -    def withdraw_for(self, from_hex: str, amount: u256) -> None:\n"
+        "    -        src = Address(from_hex)\n"
+        "    -        cur = int(self.balances.get(src, u256(0)))\n"
+        "    -        if int(amount) <= 0 or int(amount) > cur:\n"
+        "    -            raise gl.vm.UserError(\"withdraw more than that balance\")\n"
+        "    -        to = gl.message.sender_address\n"
+        "    -        self.balances[src] = u256(cur - int(amount))\n"
+        "    -        gl.emit_transfer(to, value=u256(int(amount)))\n\n"
+        "WHY THE EXPLOIT NO LONGER WORKS: the unauthorized path is gone from\n"
+        "the deployed source. withdraw() only moves the caller's own balance,\n"
+        "so no call can move another account's funds anymore. The attack path\n"
+        "from the accepted alarm is closed on the registered contract above.\n\n"
+        "DEPLOYMENT: the patched source was redeployed as this contract's\n"
+        "registered code; commit 9f83ab1 in the repository records the\n"
+        "change and the deployment transaction.",
     )
     receipt = (
         breaker.connect(owner)
@@ -237,8 +407,12 @@ def test_alarm_pauses_real_vault_then_fix_resumes():
     )
     assert tx_execution_succeeded(receipt)
 
-    t = breaker.get_target(args=[tid]).call()
+    t = _wait_target_status(breaker, tid, "LIVE")
     assert t["status"] == "LIVE", f"expected the vault resumed, got {t['status']}"
+
+    # The resume stake is back with the owner.
+    stats = breaker.get_stats(args=[]).call()
+    assert int(stats["total_bonds"]) == 0
 
     # Money moves again.
     receipt = (
@@ -247,6 +421,18 @@ def test_alarm_pauses_real_vault_then_fix_resumes():
         .transact(value=GEN, wait_interval=10000, wait_retries=15)
     )
     assert tx_execution_succeeded(receipt)
+
+    # Close returns the remaining bail and unregisters the vault.
+    receipt = (
+        breaker.connect(owner)
+        .close_target(args=[tid])
+        .transact(wait_interval=10000, wait_retries=15)
+    )
+    assert tx_execution_succeeded(receipt)
+    stats = breaker.get_stats(args=[]).call()
+    assert int(stats["total_bail"]) == 0, "the close must drain the bail"
+    assert int(stats["bail_consistent"]) == 1
+    assert int(stats["bonds_consistent"]) == 1
 
 
 @pytest.mark.integration
@@ -261,7 +447,12 @@ def test_stale_report_without_nonce_is_unproven():
     owner, reporter = accounts[0], accounts[1]
 
     breaker = _deploy(owner)
-    tid = _register(breaker, owner, "0x" + "77" * 20)
+    # The consent handshake demands a real, consenting contract, so the
+    # alarm flies against a deployed vault instead of a bare address.
+    vault = get_contract_factory("SafeVault").deploy(
+        args=[str(breaker.address)], account=owner
+    )
+    tid = _register(breaker, owner, str(vault.address))
     aid, url = _file_alarm(breaker, reporter, tid)
 
     # A report with no nonce at all: written before the alarm existed.
@@ -289,6 +480,10 @@ def test_stale_report_without_nonce_is_unproven():
     assert t["status"] == "LIVE"
     stats = breaker.get_stats(args=[]).call()
     assert int(stats["total_paid"]) == 0
+    assert int(stats["total_burned"]) == BOND
+    # The burned bond grew the target's bail: the owner closes with more
+    # than he staked.
+    assert int(stats["total_bail"]) == BAIL + BOND
 
 
 @pytest.mark.integration
@@ -299,7 +494,10 @@ def test_unreachable_report_fails_and_gates_retries():
     owner, reporter = accounts[0], accounts[1]
 
     breaker = _deploy(owner)
-    tid = _register(breaker, owner, "0x" + "88" * 20)
+    vault = get_contract_factory("SafeVault").deploy(
+        args=[str(breaker.address)], account=owner
+    )
+    tid = _register(breaker, owner, str(vault.address))
 
     url = "https://no-such-report-endpoint-a1b2c3d4.invalid/report"
     receipt = (
